@@ -10,7 +10,7 @@
 
 #define STATES_AMOUNT 3  // Кол-во начальных состояний
 
-// Вывод начального меню
+// Вывод начального менюgggggggggggggggggggggggg
 int start_menu(int field[ROWS][COLUMNS]);
 
 // Создание пустого состояния
