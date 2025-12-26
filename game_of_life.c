@@ -8,7 +8,7 @@
 #define ROWS 25     // Колонки поля
 #define COLUMNS 80  // Ряды поля
 
-#define STATES_AMOUNT 2  // Кол-во начальных состояний
+#define STATES_AMOUNT 3  // Кол-во начальных состояний
 
 // Вывод начального меню
 int start_menu(int field[ROWS][COLUMNS]);
