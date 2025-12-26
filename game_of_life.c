@@ -10,14 +10,17 @@
 
 #define STATES_AMOUNT 5  // Кол-во начальных состояний
 
+// Вывод начального меню
+int start_menu(int field[ROWS][COLUMNS]);
+
+// Создание пустого состояния
+int generate_blank_state();
+
 // Считывание состояния из потока ввода
 void read_from_input(int field[ROWS][COLUMNS]);
 
 // Считывание состояния из файла
 int read_from_file(int field[ROWS][COLUMNS], int choice);
-
-// Вывод начального меню
-int start_menu(int field[ROWS][COLUMNS]);
 
 // Вывод кадра игры
 void print_game(int field[ROWS][COLUMNS], int counter, int delay);
@@ -35,8 +38,12 @@ int main() {
     int previous_field[ROWS][COLUMNS], field[ROWS][COLUMNS];
     // read_from_input(field);
 
-    if (start_menu(field) == 1) {
+    int start_menu_result = start_menu(field);
+    if (start_menu_result == 1) {
         return 1;
+    } else if (start_menu_result == 2) {
+        printf("Blank state was successfully generated.\n");
+        return 0;
     }
 
     // Перенаправляем стандартный поток ввода обратно из консоли для считывания клавиш
@@ -82,26 +89,52 @@ int main() {
 int start_menu(int field[ROWS][COLUMNS]) {
     int choice, scanf_flag;
     do {
-        printf("Choose a starting configuration (1-%d): ", STATES_AMOUNT);
+        printf("Choose a starting configuration (1-%d), or 0 to generate a blank state: ", STATES_AMOUNT);
 
         scanf_flag = scanf("%d", &choice);
-        
-        if (scanf_flag != 1) {
-        printf("Invalid input. Please enter a number.\n");
 
-        int c;
-        while ((c = getchar()) != '\n' && c != EOF)
-            ;
-        } else if (choice < 1 || choice > STATES_AMOUNT) {
-            printf("Invalid input. Please enter a number between 1 and %d.\n", STATES_AMOUNT);
+        if (scanf_flag != 1) {
+            printf("Invalid input. Please enter a number.\n");
+
+            int c;
+            while ((c = getchar()) != '\n' && c != EOF);
+        } else if (choice < 0 || choice > STATES_AMOUNT) {
+            printf("Invalid input. Please enter a number between 0 and %d.\n", STATES_AMOUNT);
         }
-    } while (scanf_flag != 1 || choice < 1 || choice > STATES_AMOUNT);
+    } while (scanf_flag != 1 || choice < 0 || choice > STATES_AMOUNT);
 
     // Загрузка данных из файла
     int flag = 0;
-    if (read_from_file(field, choice) == 1) {
+    if (choice == 0) {
+        flag = generate_blank_state();
+    } else if (read_from_file(field, choice) == 1) {
         printf("Error: Could not open file %d.txt\n", choice);
         flag = 1;
+    }
+
+    return flag;
+}
+
+int generate_blank_state() {
+    int flag = 0;
+    char filename[20] = "./datasets/0.txt";
+
+    FILE* file = fopen(filename, "w");
+    if (!file) flag = 1;
+
+    if (flag != 1) {
+        for (int i = 0; i < ROWS; i++) {
+            for (int j = 0; j < COLUMNS; j++) {
+                fprintf(file, "0");  // Заполняем нулями
+                if (j != COLUMNS - 1) fprintf(file, " ");
+            }
+            if (i != ROWS - 1) fprintf(file, "\n");
+        }
+    }
+
+    if (flag != 1) {
+        fclose(file);
+        flag = 2;  // Флаг созданного пустого состояния
     }
 
     return flag;
