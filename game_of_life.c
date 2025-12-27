@@ -8,7 +8,7 @@
 #define ROWS 25     // Колонки поля
 #define COLUMNS 80  // Ряды поля
 
-#define STATES_AMOUNT 3  // Кол-во начальных состояний
+#define STATES_DIR "./datasets/"  // Каталог с начальными состояниями
 
 // Вывод начального меню
 int start_menu(int field[ROWS][COLUMNS]);
@@ -18,6 +18,9 @@ int generate_blank_state();
 
 // Считывание состояния из потока ввода
 void read_from_input(int field[ROWS][COLUMNS]);
+
+// Расчёт диапазона файлов с начальным состоянием
+int count_states(int range[2]);
 
 // Считывание состояния из файла
 int read_from_file(int field[ROWS][COLUMNS], int choice);
@@ -87,27 +90,56 @@ int main() {
 }
 
 int start_menu(int field[ROWS][COLUMNS]) {
-    int choice, scanf_flag;
-    do {
-        printf("Choose a starting configuration (1-%d), or 0 to generate a blank state: ", STATES_AMOUNT);
+    int choice, scanf_flag, flag = 0;
 
-        scanf_flag = scanf("%d", &choice);
+    // Вычисляем диапазон файлов с начальными состояниями
+    int range[2];
+    flag = count_states(range);
 
-        if (scanf_flag != 1) {
-            printf("Invalid input. Please enter a number.\n");
+    if (flag == 0) {
+        // Нашли хотя бы один файл с начальным состоянием
+        do {
+            if (range[0] != range[1]) {
+                // Нашли более 1-го файла
+                printf("Choose a starting configuration (%d-%d), or 0 to generate a blank state: ", range[0],
+                       range[1]);
+            } else {
+                // Найшли 1 файл
+                printf("Choose a starting configuration (%d), or 0 to generate a blank state: ", range[0]);
+            }
 
-            int c;
-            while ((c = getchar()) != '\n' && c != EOF);
-        } else if (choice < 0 || choice > STATES_AMOUNT) {
-            printf("Invalid input. Please enter a number between 0 and %d.\n", STATES_AMOUNT);
-        }
-    } while (scanf_flag != 1 || choice < 0 || choice > STATES_AMOUNT);
+            scanf_flag = scanf("%d", &choice);
 
-    // Загрузка данных из файла
-    int flag = 0;
+            if (scanf_flag != 1) {
+                // Введено не число
+                printf("Invalid input. Please enter a number.\n");
+
+                int c;
+                while ((c = getchar()) != '\n' && c != EOF);
+            } else if (choice != 0 && (choice < range[0] || choice > range[1])) {
+                // Введено число вне диапазона файлов с состояниями и не 0
+                if (range[0] != range[1]) {
+                    // Если более 1-го файла
+                    printf("Invalid input. Please enter a number between %d and %d, or 0.\n", range[0],
+                           range[1]);
+                } else {
+                    // Если 1 файл
+                    printf("Invalid input. Please enter the number %d or 0.\n", range[0]);
+                }
+            }
+        } while (scanf_flag != 1 || (choice != 0 && (choice < range[0] || choice > range[1])));
+    } else {
+        // Не нашли файлов с начальными состояниями
+        printf("Initial states are not found. Generating blank state instead...\n");
+        choice = 0;
+    }
+
+    // Создание файла с пустым начальным состоянием
     if (choice == 0) {
         flag = generate_blank_state();
-    } else if (read_from_file(field, choice) == 1) {
+    }
+    // Загрузка данных из файла
+    else if (read_from_file(field, choice) == 1) {
         printf("Error: Could not open file %d.txt\n", choice);
         flag = 1;
     }
@@ -117,7 +149,8 @@ int start_menu(int field[ROWS][COLUMNS]) {
 
 int generate_blank_state() {
     int flag = 0;
-    char filename[20] = "./datasets/0.txt";
+    char filename[64];
+    snprintf(filename, sizeof filename, "%s0.txt", STATES_DIR);
 
     FILE* file = fopen(filename, "w");
     if (!file) flag = 1;
@@ -148,11 +181,46 @@ void read_from_input(int field[ROWS][COLUMNS]) {
     }
 }
 
+int count_states(int range[2]) {
+    int flag = 1;
+    int depth = 100;
+    char filename[64];
+    FILE* f;
+
+    // Находим первое доступное состояние
+    for (range[0] = 1; range[0] < depth; range[0]++) {
+        snprintf(filename, sizeof filename, "%s%d.txt", STATES_DIR, range[0]);
+        f = fopen(filename, "r");
+        if (f) {
+            fclose(f);
+            flag = 0;
+            break;
+        }
+    }
+
+    if (flag == 0) {
+        // Находим последнее доступное состояние
+        for (range[1] = range[0];; range[1]++) {
+            snprintf(filename, sizeof filename, "%s%d.txt", STATES_DIR, range[1] + 1);
+
+            f = fopen(filename, "r");
+            if (f) {
+                fclose(f);
+            } else {
+                break;
+            }
+        }
+    }
+
+    return flag;
+}
+
 int read_from_file(int field[ROWS][COLUMNS], int choice) {
     int flag = 0;
 
-    char filename[20];
-    sprintf(filename, "./datasets/%d.txt", choice);  // Формируем имя: "1.txt", "2.txt" и т.д.
+    char filename[64];
+    // Формируем имя: "1.txt", "2.txt" и т.д.
+    snprintf(filename, sizeof filename, "%s%d.txt", STATES_DIR, choice);
 
     FILE* file = fopen(filename, "r");
     if (!file) flag = 1;
@@ -306,7 +374,7 @@ void advance_game_state(int previous_field[ROWS][COLUMNS], int field[ROWS][COLUM
                 // Клетка "стареет", если выживает
                 int age = (previous_field[i][j] + 1) * (neighboors == 2 || neighboors == 3);
                 // Максимальный отслеживаемый возраст клетки
-                field[i][j] = (age <= 9) ? age : 9;  
+                field[i][j] = (age <= 9) ? age : 9;
             }
         }
     }
