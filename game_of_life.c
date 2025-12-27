@@ -161,7 +161,7 @@ int read_from_file(int field[ROWS][COLUMNS], int choice) {
         for (int i = 0; i < ROWS; i++) {
             for (int j = 0; j < COLUMNS; j++) {
                 if (fscanf(file, "%d", &field[i][j]) != 1) {
-                    field[i][j] = 0;  // Заполняем нулями, если файл битый
+                    field[i][j] = 0;  // Записываем ноль, если значение некорректное
                 }
             }
         }
@@ -175,61 +175,79 @@ void print_game(int field[ROWS][COLUMNS], int counter, int delay) {
     const char BORDER_HORIZONTAL = '-';
     const char BORDER_VERTICAL = '|';
     const char BORDER_CORNER = '*';
-    const char ALIVE_CELL = '#';
-    const char DEAD_CELL = '.';
+    const char ALIVE_CELL = ' ';
+    const char DEAD_CELL = ' ';
 
-    // Пара №1: Красный текст на черном фоне
-    init_pair(1, COLOR_RED, COLOR_BLACK);
+    // Цвет мёртвой клетки
+    init_pair(1, COLOR_BLACK, COLOR_BLACK);
 
-    // Пара №2: Зеленый текст на черном фоне
-    init_pair(2, COLOR_GREEN, COLOR_BLACK);
+    // Цвет живой клетки (возраст 1)
+    init_pair(2, COLOR_GREEN, COLOR_GREEN);
+
+    // Цвет живой клетки (возраст 2)
+    init_pair(3, COLOR_YELLOW, COLOR_YELLOW);
+
+    // Цвет живой клетки (возраст 3)
+    init_pair(4, COLOR_RED, COLOR_RED);
+
+    // Цвет границы
+    init_pair(5, COLOR_CYAN, COLOR_BLACK);
+
+    // Цвет текста
+    init_pair(6, COLOR_MAGENTA, COLOR_BLACK);
 
     clear();
 
     // Верхняя граница
-    attron(COLOR_PAIR(1));
+    attron(COLOR_PAIR(5));
     printw("%c", BORDER_CORNER);
 
     for (int j = 0; j < COLUMNS; j++) printw("%c", BORDER_HORIZONTAL);
 
     printw("%c\n", BORDER_CORNER);
-    attroff(COLOR_PAIR(1));
+    attroff(COLOR_PAIR(5));
 
     // Вывод поля
     for (int i = 0; i < ROWS; i++) {
-        attron(COLOR_PAIR(1));
+        attron(COLOR_PAIR(5));
         printw("%c", BORDER_VERTICAL);  // Левая граница
-        attroff(COLOR_PAIR(1));
+        attroff(COLOR_PAIR(5));
 
         for (int j = 0; j < COLUMNS; j++) {
+            // Указываем цвет клетки в зависимости от её возраста
+            attron(COLOR_PAIR((field[i][j] <= 3) ? field[i][j] + 1 : 4));
+
+            // Выводим символ мёртвой или живой клетки
             if (field[i][j] == 0)
                 printw("%c", DEAD_CELL);
             else
                 printw("%c", ALIVE_CELL);
+
+            attroff(COLOR_PAIR((field[i][j] <= 3) ? field[i][j] + 1 : 4));
         }
 
-        attron(COLOR_PAIR(1));
+        attron(COLOR_PAIR(5));
         printw("%c\n", BORDER_VERTICAL);  // Правая граница
-        attroff(COLOR_PAIR(1));
+        attroff(COLOR_PAIR(5));
     }
 
     // Нижняя граница
-    attron(COLOR_PAIR(1));
+    attron(COLOR_PAIR(5));
     printw("%c", BORDER_CORNER);
 
     for (int j = 0; j < COLUMNS; j++) printw("%c", BORDER_HORIZONTAL);
 
     printw("%c\n", BORDER_CORNER);
-    attroff(COLOR_PAIR(1));
+    attroff(COLOR_PAIR(5));
 
     // Вывод текста интерфейса
-    attron(COLOR_PAIR(2));
+    attron(COLOR_PAIR(6));
     printw("The loop is running. Press A/Z to increase/decrease speed. Press Q or Space to quit.\n\n");
 
     printw("Generation # %d\n", counter);
 
     printw("Delay: %d ms", delay);
-    attroff(COLOR_PAIR(2));
+    attroff(COLOR_PAIR(6));
 
     refresh();
 }
@@ -285,7 +303,10 @@ void advance_game_state(int previous_field[ROWS][COLUMNS], int field[ROWS][COLUM
             if (previous_field[i][j] == 0) {  // Клетка мертва
                 field[i][j] = (neighboors == 3);
             } else {  // Клетка жива
-                field[i][j] = (neighboors == 2 || neighboors == 3);
+                // Клетка "стареет", если выживает
+                int age = (previous_field[i][j] + 1) * (neighboors == 2 || neighboors == 3);
+                // Максимальный отслеживаемый возраст клетки
+                field[i][j] = (age <= 9) ? age : 9;  
             }
         }
     }
@@ -300,7 +321,7 @@ int count_neighbours(int previous_field[ROWS][COLUMNS], int y, int x) {
                 j != 0) {  // Клетка не считает сама себя (де Моргана от условия !(i == 0 && j == 0))
                 y_coord = (y + i + ROWS) % ROWS;
                 x_coord = (x + j + COLUMNS) % COLUMNS;
-                if (previous_field[y_coord][x_coord] == 1) result++;
+                if (previous_field[y_coord][x_coord] != 0) result++;
             }
         }
     }
