@@ -16,8 +16,8 @@ int start_menu(int field[ROWS][COLUMNS]);
 // Создание пустого состояния
 int generate_blank_state();
 
-// Считывание состояния из потока ввода
-void read_from_input(int field[ROWS][COLUMNS]);
+// Считывание состояния из потока ввода (не используется)
+// void read_from_input(int field[ROWS][COLUMNS]);
 
 // Расчёт диапазона файлов с начальным состоянием
 int count_states(int range[2]);
@@ -35,7 +35,7 @@ int handle_input(int* delay);
 void advance_game_state(int previous_field[ROWS][COLUMNS], int field[ROWS][COLUMNS], int* counter);
 
 // Подсчёт соседей
-int count_neighbours(int previous_field[ROWS][COLUMNS], int y, int x);
+int count_neighbours(const int previous_field[ROWS][COLUMNS], int y, int x);
 
 int main() {
     int previous_field[ROWS][COLUMNS], field[ROWS][COLUMNS];
@@ -45,7 +45,7 @@ int main() {
     if (start_menu_result == 1) {
         return 1;
     } else if (start_menu_result == 2) {
-        printf("Blank state was successfully generated.\n");
+        printf("Blank state \"0.txt\" was successfully generated.\n");
         return 0;
     }
 
@@ -65,11 +65,11 @@ int main() {
     }
     start_color();
 
-    cbreak();     // Посимвольное считывание
-    noecho();     // Отключение отображения введённых символов
-    curs_set(0);  // Скрытие курсора
-    keypad(stdscr, TRUE);  // Обработка специальных клавиш (F1, Home, стрелки и т. д.)
+    cbreak();               // Посимвольное считывание
+    noecho();               // Отключение отображения введённых символов
+    curs_set(0);            // Скрытие курсора
     nodelay(stdscr, TRUE);  // Неблокирующий ввод
+    keypad(stdscr, TRUE);  // Обработка специальных клавиш (F1, Home, стрелки и т. д.)
 
     int counter = 0, delay = 50;
     print_game(field, counter, delay);
@@ -90,13 +90,15 @@ int main() {
 }
 
 int start_menu(int field[ROWS][COLUMNS]) {
-    int choice, scanf_flag, flag = 0;
+    int choice, flag = 0;
 
     // Вычисляем диапазон файлов с начальными состояниями
     int range[2];
     flag = count_states(range);
 
     if (flag == 0) {
+        int scanf_flag;
+        
         // Нашли хотя бы один файл с начальным состоянием
         do {
             if (range[0] != range[1]) {
@@ -163,9 +165,7 @@ int generate_blank_state() {
             }
             if (i != ROWS - 1) fprintf(file, "\n");
         }
-    }
 
-    if (flag != 1) {
         fclose(file);
         flag = 2;  // Флаг созданного пустого состояния
     }
@@ -173,13 +173,13 @@ int generate_blank_state() {
     return flag;
 }
 
-void read_from_input(int field[ROWS][COLUMNS]) {
-    for (int i = 0; i < ROWS; i++) {
-        for (int j = 0; j < COLUMNS; j++) {
-            if (scanf("%d", &field[i][j]) != 1) break;
-        }
-    }
-}
+// void read_from_input(int field[ROWS][COLUMNS]) {
+//     for (int i = 0; i < ROWS; i++) {
+//         for (int j = 0; j < COLUMNS; j++) {
+//             if (scanf("%d", &field[i][j]) != 1) break;
+//         }
+//     }
+// }
 
 int count_states(int range[2]) {
     int flag = 1;
@@ -233,9 +233,10 @@ int read_from_file(int field[ROWS][COLUMNS], int choice) {
                 }
             }
         }
+
+        fclose(file);
     }
 
-    if (flag != 1) fclose(file);
     return flag;
 }
 
@@ -265,7 +266,7 @@ void print_game(int field[ROWS][COLUMNS], int counter, int delay) {
 
     // Цвет живой клетки (возраст 3)
     init_pair(4, COLOR_MAGENTA, COLOR_MAGENTA);
-    
+
     // Цвет живой клетки (возраст 4)
     init_pair(5, COLOR_RED, COLOR_RED);
 
@@ -391,7 +392,7 @@ void advance_game_state(int previous_field[ROWS][COLUMNS], int field[ROWS][COLUM
     }
 }
 
-int count_neighbours(int previous_field[ROWS][COLUMNS], int y, int x) {
+int count_neighbours(const int previous_field[ROWS][COLUMNS], int y, int x) {
     int result = 0, y_coord, x_coord;
 
     for (int i = -1; i < 2; i++) {
