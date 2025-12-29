@@ -98,7 +98,7 @@ int start_menu(int field[ROWS][COLUMNS]) {
 
     if (flag == 0) {
         int scanf_flag;
-        
+
         // Нашли хотя бы один файл с начальным состоянием
         do {
             if (range[0] != range[1]) {
